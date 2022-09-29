@@ -1,0 +1,107 @@
+FUNCTION_BLOCK robot	
+
+VAR_INPUT				
+	sensor_centro : REAL;
+	sensor_esquerdo : REAL;
+	sensor_direito : REAL;
+	
+	classification : REAL;
+END_VAR
+
+VAR_OUTPUT				
+	speed : REAL;
+	angle : REAL;
+	acao_realizada : REAL;
+END_VAR
+
+FUZZIFY sensor_centro	
+	TERM found := (0,1) (1,0) ; 
+	TERM near :=  (0,0.95) (1, 0.9) (2, 0.8) (3,0.7) (4,0.6) (5, 0.5) (6,0.4) (7, 0.3) (8, 0.2) (9, 0.1) (10,0) ;
+	TERM medium := (0,0.5) (1, 0.6) (2, 0.7) (3,0.8) (4,0.9) (5, 1) (6,0.9) (7, 0.8) (8, 0.7) (9, 0.6) (10,0.5) ; 
+	TERM far :=  (0,0) (1, 0.1) (2, 0.2) (3,0.3) (4,0.4) (5, 0.5) (6,0.6) (7, 0.7) (8, 0.8) (9, 0.9) (10,1) ;
+END_FUZZIFY
+
+FUZZIFY sensor_esquerdo		
+	TERM found := (0,1) (1,0) ; 
+	TERM near :=  (0,0.95) (1, 0.9) (2, 0.8) (3,0.7) (4,0.6) (5, 0.5) (6,0.4) (7, 0.3) (8, 0.2) (9, 0.1) (10,0) ;
+	TERM medium := (0,0.5) (1, 0.6) (2, 0.7) (3,0.8) (4,0.9) (5, 1) (6,0.9) (7, 0.8) (8, 0.7) (9, 0.6) (10,0.5) ; 
+	TERM far :=  (0,0) (1, 0.1) (2, 0.2) (3,0.3) (4,0.4) (5, 0.5) (6,0.6) (7, 0.7) (8, 0.8) (9, 0.9) (10,1) ;
+END_FUZZIFY
+
+FUZZIFY sensor_direito		
+	TERM found := (0,1) (1,0) ; 
+	TERM near :=  (0,0.95) (1, 0.9) (2, 0.8) (3,0.7) (4,0.6) (5, 0.5) (6,0.4) (7, 0.3) (8, 0.2) (9, 0.1) (10,0) ;
+	TERM medium := (0,0.5) (1, 0.6) (2, 0.7) (3,0.8) (4,0.9) (5, 1) (6,0.9) (7, 0.8) (8, 0.7) (9, 0.6) (10,0.5) ; 
+	TERM far :=  (0,0) (1, 0.1) (2, 0.2) (3,0.3) (4,0.4) (5, 0.5) (6,0.6) (7, 0.7) (8, 0.8) (9, 0.9) (10,1) ;
+END_FUZZIFY
+
+FUZZIFY classification			
+	TERM poisonous := 1;
+	TERM none := 2;
+	TERM edible := 3; 
+END_FUZZIFY
+DEFUZZIFY speed
+TERM slow := 3;
+TERM medium:=5;
+TERM fast :=9;
+METHOD : COGS;		
+	DEFAULT := 0;		
+END_DEFUZZIFY
+
+DEFUZZIFY angle			
+TERM strong_left := (-45,1)(-30,0.7) (-15,0.3);
+TERM left :=(-45,0.7)(-30,1) (-15,0.7)(0,0.3);
+TERM center :=(-45,0)(-30,0.5) (-15,0.7)(0,1)(15,0.7) (30,0.5);
+TERM right :=(0,0.3)(15,0.7) (30,1)(45,0.7);
+TERM strong_right := (15,0.3)(30,0.7) (45,0.1);
+	METHOD : COG;		
+	DEFAULT := 0;		
+END_DEFUZZIFY
+
+DEFUZZIFY acao_realizada			
+	TERM no_action := 1;
+	TERM destroy := 2;
+	TERM pick_up := 3;
+	METHOD : COGS;		
+	DEFAULT := 1;		
+END_DEFUZZIFY
+
+RULEBLOCK No1
+	AND : MIN;			
+	ACT : MIN;			
+	ACCU : MAX;
+
+	 
+    	
+
+	RULE 1 : IF sensor_esquerdo IS far AND sensor_centro IS far AND sensor_direito IS near THEN angle IS strong_right;
+	RULE 2 : IF sensor_esquerdo IS medium AND sensor_centro IS far AND sensor_direito IS near THEN angle IS strong_right;
+	RULE 3 : IF sensor_esquerdo IS far AND sensor_centro IS medium AND sensor_direito IS near THEN angle IS strong_right;
+	RULE 4 : IF sensor_esquerdo IS medium AND sensor_centro IS medium AND sensor_direito IS near THEN angle IS strong_right;
+
+	RULE 5 : IF sensor_esquerdo IS near AND sensor_centro IS far AND sensor_direito IS far THEN angle IS strong_left;
+	RULE 6 : IF sensor_esquerdo IS near AND sensor_centro IS medium AND sensor_direito IS far THEN angle IS strong_left;
+	RULE 7 : IF sensor_esquerdo IS near AND sensor_centro IS far AND sensor_direito IS medium THEN angle IS strong_left;
+	RULE 8 : IF sensor_esquerdo IS near AND sensor_centro IS medium AND sensor_direito IS medium THEN angle IS strong_left;
+
+	RULE 9 : IF sensor_esquerdo IS far AND sensor_centro IS far AND sensor_direito IS medium THEN angle IS right;
+	RULE 10 : IF sensor_esquerdo IS far AND sensor_centro IS medium AND sensor_direito IS medium THEN angle IS right;
+
+	RULE 11 : IF sensor_esquerdo IS medium AND sensor_centro IS far AND sensor_direito IS far THEN angle IS left;
+	RULE 12 : IF sensor_esquerdo IS medium AND sensor_centro IS medium AND sensor_direito IS far THEN angle IS left;
+
+	
+
+	RULE 15 : IF sensor_esquerdo IS far AND sensor_direito IS far AND sensor_centro IS far THEN angle IS center; 
+  	RULE 16 : IF classification IS none THEN acao_realizada IS no_action;  
+	RULE 17 : IF (sensor_esquerdo IS found OR sensor_direito IS found OR sensor_centro IS found)  AND classification IS poisonous THEN acao_realizada IS destroy;      
+	RULE 18 : IF (sensor_esquerdo IS found OR sensor_direito  IS found OR sensor_centro IS found ) AND classification IS edible THEN acao_realizada IS pick_up; 
+
+
+
+       
+                     
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
